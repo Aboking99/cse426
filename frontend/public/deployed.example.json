@@ -1,0 +1,10 @@
+{
+  "chainId": 31337,
+  "networkName": "Hardhat Local",
+  "rpcUrl": "http://127.0.0.1:8545",
+  "yodaToken": "0x…",
+  "yodaIsMock": true,
+  "campaigns": [],
+  "owner": "0x…",
+  "notes": "Run `npm run deploy:local` from the repo root to generate a full deployed.json, or copy fields from this template."
+}

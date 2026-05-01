@@ -1,0 +1,16 @@
+[
+  "function owner() view returns (address)",
+  "function yodaToken() view returns (address)",
+  "function fundingGoal() view returns (uint256)",
+  "function totalRaised() view returns (uint256)",
+  "function equityPercentageOffered() view returns (uint256)",
+  "function deadline() view returns (uint256)",
+  "function finalized() view returns (bool)",
+  "function investors(address) view returns (uint256 amountInvested, uint256 equityShare)",
+  "function getInvestorShare(address investor) view returns (uint256)",
+  "function getTotalRaised() view returns (uint256)",
+  "function invest(uint256 amount)",
+  "function finalizeRound()",
+  "event Invested(address indexed investor, uint256 amount)",
+  "event Finalized()"
+]

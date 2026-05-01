@@ -1,0 +1,115 @@
+{
+  "chainId": 31337,
+  "networkName": "Local demo (Hardhat)",
+  "rpcUrl": "http://127.0.0.1:8545",
+  "yodaToken": "0xCAFE00000000000000000000000000000000B0DA",
+  "yodaIsMock": false,
+  "owner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "notes": "Sample campaigns for the UI. Run `npm run node` then `npm run deploy:local` to replace this file with live contract addresses, or edit campaigns here.",
+  "campaigns": [
+    {
+      "slug": "al-quds-solar",
+      "title": "Al-Quds Community Solar",
+      "subtitle": "Rooftop solar for a masjid community hall — lower bills, shared benefit.",
+      "crowdfunding": "0xCAFE00000000000000000000000000000000A001",
+      "fundingGoalHuman": "2000",
+      "equityPercentageOffered": 25,
+      "deadline": 1893456000,
+      "totalRaisedAfterSeed": "2400",
+      "seedInvestors": [
+        {
+          "label": "Amina R.",
+          "role": "Community lead",
+          "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "investedYoda": "1200",
+          "note": "Early backer; aligned with long-term savings for the hall."
+        },
+        {
+          "label": "Yusuf K.",
+          "role": "Small business owner",
+          "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+          "investedYoda": "800",
+          "note": "Prefers equity-style risk-sharing over debt."
+        },
+        {
+          "label": "Fatimah S.",
+          "role": "Family office (demo)",
+          "address": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+          "investedYoda": "400",
+          "note": "Diversifies sadaqa-aligned portfolio."
+        }
+      ],
+      "story": {
+        "summary": "Funds install a modest solar array and inverter on the community hall. Returns are conceptual in this demo; on-chain logic records proportional equity only — no interest.",
+        "useOfFunds": [
+          "Panels, inverter, and certified installation",
+          "Electrical inspection and grid paperwork",
+          "Maintenance reserve (first year)"
+        ],
+        "shariaNote": "Structured as proportional equity in a single campaign (no guaranteed profit, no riba). This interface is a classroom / demo build."
+      }
+    },
+    {
+      "slug": "rifq-housing-cooperative",
+      "title": "Rifq Housing Cooperative (pilot)",
+      "subtitle": "Shared-equity pilot for affordable family units — no mortgage interest in this model.",
+      "crowdfunding": "0xCAFE00000000000000000000000000000000A002",
+      "fundingGoalHuman": "5000",
+      "equityPercentageOffered": 30,
+      "deadline": 1893542400,
+      "totalRaisedAfterSeed": "1500",
+      "seedInvestors": [
+        {
+          "label": "Omar H.",
+          "role": "Co-op member",
+          "address": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+          "investedYoda": "1000",
+          "note": "First tranche toward the pilot unit."
+        },
+        {
+          "label": "Khadijah M.",
+          "role": "Treasurer (demo)",
+          "address": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+          "investedYoda": "500",
+          "note": "Documents proportional stakes for members."
+        }
+      ],
+      "story": {
+        "summary": "A pilot cooperative raise for land-bank fees and planning deposits. This demo does not issue real securities — it shows how proportional contributions map to equity % on-chain.",
+        "useOfFunds": ["Planning and permits", "Legal structure setup", "Community consultation"],
+        "shariaNote": "Framed as musharakah-style participation in a defined pool; consult qualified scholars and counsel for real offerings."
+      }
+    },
+    {
+      "slug": "nur-edtech-seed",
+      "title": "Nūr EdTech Seed (ethical content)",
+      "subtitle": "Curriculum tools for Islamic schools — subscription revenue shared with backers.",
+      "crowdfunding": "0xCAFE00000000000000000000000000000000A003",
+      "fundingGoalHuman": "3000",
+      "equityPercentageOffered": 20,
+      "deadline": 1893628800,
+      "totalRaisedAfterSeed": "2100",
+      "seedInvestors": [
+        {
+          "label": "Ibrahim T.",
+          "role": "EdTech founder",
+          "address": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+          "investedYoda": "1200",
+          "note": "Founder co-invest alongside community."
+        },
+        {
+          "label": "Layla N.",
+          "role": "Angel (demo)",
+          "address": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+          "investedYoda": "900",
+          "note": "Supports content moderation budget."
+        }
+      ],
+      "story": {
+        "summary": "Builds a minimal LMS layer and content pipeline for partner schools. Demo uses the same CrowdfundingEquity contract with a different goal and deadline.",
+        "useOfFunds": ["Engineering sprint", "Content review", "Pilot school onboarding"],
+        "shariaNote": "Profit-sharing in real life requires clear contracts; here we only demonstrate proportional equity allocation after finalize."
+      }
+    }
+  ]
+}
