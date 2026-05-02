@@ -1,18 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IERC20 {
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
-}
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract CrowdfundingEquity {
+    using SafeERC20 for IERC20;
+
+    enum RoundState {
+        Active,
+        SuccessfulPendingFinalization,
+        FailedRefunding,
+        FinalizedAwaitingClaim,
+        Closed
+    }
+
     address public owner;
-    address public yodaToken;
+    IERC20 public yodaToken;
     uint256 public fundingGoal;
     uint256 public totalRaised;
     uint256 public equityPercentageOffered;
     uint256 public deadline;
     bool public finalized;
+    bool public fundsClaimed;
 
     struct Investor {
         uint256 amountInvested;
@@ -25,7 +35,9 @@ contract CrowdfundingEquity {
     mapping(address => bool) private hasInvested;
 
     event Invested(address indexed investor, uint256 amount);
-    event Finalized();
+    event Finalized(uint256 totalRaised);
+    event Refunded(address indexed investor, uint256 amount);
+    event FundsClaimed(address indexed owner, uint256 amount);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner");
@@ -39,23 +51,22 @@ contract CrowdfundingEquity {
         uint256 _deadlineTimestamp
     ) {
         require(_yodaToken != address(0), "Invalid token address");
+        require(_fundingGoal > 0, "Funding goal must be > 0");
         require(_equityPercentageOffered > 0 && _equityPercentageOffered <= 100, "Equity must be 1-100");
         require(_deadlineTimestamp > block.timestamp, "Deadline must be in the future");
 
         owner = msg.sender;
-        yodaToken = _yodaToken;
+        yodaToken = IERC20(_yodaToken);
         fundingGoal = _fundingGoal;
         equityPercentageOffered = _equityPercentageOffered;
         deadline = _deadlineTimestamp;
     }
 
     function invest(uint256 amount) external {
-        require(!finalized, "Round already finalized");
-        require(block.timestamp < deadline, "Funding period ended");
+        require(roundState() == RoundState.Active, "Round is not active");
         require(amount > 0, "Amount must be > 0");
 
-        bool ok = IERC20(yodaToken).transferFrom(msg.sender, address(this), amount);
-        require(ok, "YODA transfer failed (check allowance/balance)");
+        yodaToken.safeTransferFrom(msg.sender, address(this), amount);
 
         if (!hasInvested[msg.sender]) {
             hasInvested[msg.sender] = true;
@@ -70,9 +81,7 @@ contract CrowdfundingEquity {
 
     function finalizeRound() external onlyOwner {
         require(!finalized, "Already finalized");
-        require(block.timestamp >= deadline, "Deadline not reached");
-        require(totalRaised > 0, "No funds raised");
-        require(totalRaised >= fundingGoal, "Funding goal not reached");
+        require(roundState() == RoundState.SuccessfulPendingFinalization, "Round not ready to finalize");
 
         uint256 n = investorList.length;
         for (uint256 i = 0; i < n; i++) {
@@ -83,7 +92,71 @@ contract CrowdfundingEquity {
         }
 
         finalized = true;
-        emit Finalized();
+        emit Finalized(totalRaised);
+    }
+
+    function claimFunds() external onlyOwner {
+        require(finalized, "Round not finalized");
+        require(!fundsClaimed, "Funds already claimed");
+
+        uint256 amount = yodaToken.balanceOf(address(this));
+        require(amount > 0, "No funds to claim");
+
+        fundsClaimed = true;
+        yodaToken.safeTransfer(owner, amount);
+
+        emit FundsClaimed(owner, amount);
+    }
+
+    function refund() external {
+        require(roundState() == RoundState.FailedRefunding, "Refunds are not available");
+
+        uint256 amount = investors[msg.sender].amountInvested;
+        require(amount > 0, "Nothing to refund");
+
+        investors[msg.sender].amountInvested = 0;
+        investors[msg.sender].equityShare = 0;
+
+        yodaToken.safeTransfer(msg.sender, amount);
+        emit Refunded(msg.sender, amount);
+    }
+
+    function roundState() public view returns (RoundState) {
+        if (finalized) {
+            return fundsClaimed ? RoundState.Closed : RoundState.FinalizedAwaitingClaim;
+        }
+
+        if (block.timestamp < deadline) {
+            return RoundState.Active;
+        }
+
+        if (totalRaised >= fundingGoal) {
+            return RoundState.SuccessfulPendingFinalization;
+        }
+
+        return RoundState.FailedRefunding;
+    }
+
+    function fundingSucceeded() external view returns (bool) {
+        return block.timestamp >= deadline && totalRaised >= fundingGoal;
+    }
+
+    function fundingFailed() external view returns (bool) {
+        return block.timestamp >= deadline && totalRaised < fundingGoal;
+    }
+
+    function refundableAmount(address investor) external view returns (uint256) {
+        if (roundState() != RoundState.FailedRefunding) {
+            return 0;
+        }
+        return investors[investor].amountInvested;
+    }
+
+    function claimableFunds() external view returns (uint256) {
+        if (!finalized || fundsClaimed) {
+            return 0;
+        }
+        return yodaToken.balanceOf(address(this));
     }
 
     function getInvestorShare(address investor) external view returns (uint256) {

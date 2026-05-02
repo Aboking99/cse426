@@ -54,7 +54,8 @@ export function Web3Provider({ children }) {
         window.ethereum,
         Number(deployed.chainId),
         deployed.rpcUrl,
-        deployed.networkName || "Network"
+        deployed.networkName || "Network",
+        deployed.blockExplorerUrl || ""
       );
       const browserProvider = new ethers.BrowserProvider(window.ethereum);
       await browserProvider.send("eth_requestAccounts", []);
@@ -87,6 +88,7 @@ export function Web3Provider({ children }) {
       connectStatus,
       connect,
       yodaIsMock: deployed?.yodaIsMock === true,
+      networkName: deployed?.networkName || "",
     }),
     [deployed, loadError, ready, signer, account, connectStatus, connect]
   );

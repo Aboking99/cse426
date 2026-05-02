@@ -9,8 +9,15 @@ export function chainIdToHex(chainId) {
  * @param {number} chainId
  * @param {string} rpcUrl
  * @param {string} [chainName]
+ * @param {string} [blockExplorerUrl]
  */
-export async function ensureChain(ethereum, chainId, rpcUrl, chainName = "Network") {
+export async function ensureChain(
+  ethereum,
+  chainId,
+  rpcUrl,
+  chainName = "Network",
+  blockExplorerUrl = ""
+) {
   const hex = chainIdToHex(chainId);
   try {
     await ethereum.request({
@@ -31,6 +38,9 @@ export async function ensureChain(ethereum, chainId, rpcUrl, chainName = "Networ
               decimals: 18,
             },
             rpcUrls: [rpcUrl],
+            ...(blockExplorerUrl
+              ? { blockExplorerUrls: [blockExplorerUrl] }
+              : {}),
           },
         ],
       });

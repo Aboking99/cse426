@@ -7,6 +7,9 @@ export function normalizeDeployed(data) {
   if (Array.isArray(data.campaigns) && data.campaigns.length > 0) {
     return {
       ...data,
+      blockExplorerUrl: data.blockExplorerUrl || "",
+      yodaSymbol: data.yodaSymbol || "YODA",
+      yodaDecimals: Number.isFinite(Number(data.yodaDecimals)) ? Number(data.yodaDecimals) : 18,
       campaigns: data.campaigns.map((c) => ({
         ...c,
         seedInvestors: c.seedInvestors || [],
@@ -19,6 +22,9 @@ export function normalizeDeployed(data) {
       ...data,
       networkName: data.networkName || "Unknown",
       rpcUrl: data.rpcUrl || "",
+      blockExplorerUrl: data.blockExplorerUrl || "",
+      yodaSymbol: data.yodaSymbol || "YODA",
+      yodaDecimals: Number.isFinite(Number(data.yodaDecimals)) ? Number(data.yodaDecimals) : 18,
       yodaIsMock: data.yodaIsMock ?? false,
       campaigns: [
         {

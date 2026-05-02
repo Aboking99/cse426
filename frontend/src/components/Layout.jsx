@@ -2,14 +2,17 @@ import { Link, Outlet } from "react-router-dom";
 import { useWeb3 } from "../context/Web3Context.jsx";
 
 export default function Layout() {
-  const { connect, account, connectStatus, ready } = useWeb3();
+  const { connect, account, connectStatus, ready, deployed, yodaIsMock } = useWeb3();
+
+  const networkLabel = deployed?.networkName || "Demo";
+  const networkDescription = yodaIsMock
+    ? "Mock YODA is enabled on this network for local testing."
+    : "Wallet actions use ETH for gas and YODA for investment amounts.";
 
   return (
     <div className="app-shell">
       <div className="network-banner" role="status">
-        <strong>Demo</strong> — Approve and invest use <strong>ETH</strong> for
-        network fees (gas). <strong>YODA</strong> is only for your investment
-        amount after you approve.
+        <strong>{networkLabel}</strong> — {networkDescription}
       </div>
       <header className="site-header">
         <div className="header-inner">
@@ -51,8 +54,8 @@ export default function Layout() {
       <footer className="site-footer">
         <div className="footer-inner">
           <p>
-            <strong>Barakah Equity</strong> — educational demo. Not financial,
-            legal, or Sharia advice.
+            <strong>Barakah Equity</strong> — educational crowdfunding DApp.
+            Not financial, legal, or Sharia advice.
           </p>
           <p className="footer-links">
             <Link to="/about">About</Link>

@@ -1,12 +1,12 @@
 # Barakah Equity
 
-**Barakah Equity** is a demo web app for **single-offering** equity crowdfunding: contributors use **YODA** (ERC‑20); **ETH** pays **gas**. Ownership is **proportional** — **no loans, no interest** in this model. **Not** legal or Sharia advice.
+**Barakah Equity** is an equity crowdfunding DApp: contributors use **YODA** (ERC-20), **ETH** pays **gas**, and ownership is assigned proportionally after a successful round is finalized. The repo supports both **local Hardhat** development and **Sepolia** deployment. **Not** legal or Sharia advice.
 
 ## Quick look (sample UI)
 
 The repo ships **`frontend/public/deployed.json`** with **example campaigns** (titles, goals, demo seed tables). Open the site with `npm run dev` in `frontend/` to browse them. On-chain reads fall back to those numbers if the RPC is down or addresses are placeholders.
 
-## Full interactive demo (local contracts)
+## Local development
 
 ```bash
 npm install
@@ -19,6 +19,24 @@ npm run dev
 
 That overwrites `deployed.json` with **chainId 31337**, mock YODA, and three live campaigns. Import a Hardhat test account in MetaMask (see Hardhat console output) and use **Connect wallet**.
 
+## Sepolia deployment
+
+1. Copy `.env.example` to `.env`
+2. Set `SEPOLIA_RPC_URL` and `PRIVATE_KEY`
+3. Set `YODA_TOKEN_ADDRESS` to the class Yoda token address on Sepolia
+4. Run:
+
+```bash
+npm install
+npm run compile
+npm run deploy:sepolia
+cd frontend
+npm install
+npm run dev
+```
+
+This writes `frontend/public/deployed.json` with Sepolia contract addresses and network metadata so the frontend can connect to the live deployment. The deploy script now requires the class Yoda token and will fail fast if `YODA_TOKEN_ADDRESS` is missing.
+
 ## Gas vs YODA
 
 | | |
@@ -30,9 +48,11 @@ That overwrites `deployed.json` with **chainId 31337**, mock YODA, and three liv
 
 | Path | Purpose |
 |------|---------|
-| [contracts/CrowdfundingEquity.sol](contracts/CrowdfundingEquity.sol) | Crowdfunding pool |
+| [contracts/CrowdfundingEquity.sol](contracts/CrowdfundingEquity.sol) | Crowdfunding round contract with finalize / refund / claim lifecycle |
 | [contracts/MockYODA.sol](contracts/MockYODA.sol) | Mock token for local Hardhat |
-| [scripts/deploy-local.js](scripts/deploy-local.js) | Local node: mock + 3 campaigns → `deployed.json` |
+| [contracts/YodaToken.sol](contracts/YodaToken.sol) | Optional reference token contract; Sepolia deployments should use the class Yoda token |
+| [scripts/deploy-local.js](scripts/deploy-local.js) | Local node: mock token + seeded campaigns → `deployed.json` |
+| [scripts/deploy-sepolia.js](scripts/deploy-sepolia.js) | Sepolia deployment script |
 | [frontend/public/deployed.example.json](frontend/public/deployed.example.json) | Minimal template |
 | [frontend/](frontend/) | React + Vite + ethers |
 
@@ -46,14 +66,16 @@ That overwrites `deployed.json` with **chainId 31337**, mock YODA, and three liv
 | Command | Purpose |
 |---------|---------|
 | `npm run node` | Local Hardhat RPC |
-| `npm run deploy:local` | Deploy mock YODA + campaigns → `frontend/public/deployed.json` |
+| `npm run deploy:local` | Deploy mock YODA + seeded campaigns → `frontend/public/deployed.json` |
+| `npm run deploy:sepolia` | Deploy campaigns to Sepolia → `frontend/public/deployed.json` |
 | `npm run time:advance` | Advance local block time (after deadline tests) |
+| `npm test` | Run the Hardhat test suite |
 | `cd frontend && npm run dev` | Website |
 | `cd frontend && npm run build` | Production build |
 
 ## `.env`
 
-Optional for future tooling. See [.env.example](.env.example).
+Required for Sepolia deployment. See [.env.example](.env.example).
 
 ## PowerShell
 
@@ -63,4 +85,4 @@ npm.cmd run deploy:local
 
 ## Disclaimer
 
-Educational demo only. Smart contracts are unaudited. Not an offer of securities.
+Educational project only. Smart contracts are unaudited. Not an offer of securities.

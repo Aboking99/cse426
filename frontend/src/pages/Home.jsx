@@ -7,6 +7,8 @@ import { useWeb3 } from "../context/Web3Context.jsx";
 export default function Home() {
   const { deployed, loadError, ready } = useWeb3();
   const [raisedMap, setRaisedMap] = useState({});
+  const tokenSymbol = deployed?.yodaSymbol || "YODA";
+  const tokenDecimals = deployed?.yodaDecimals ?? 18;
 
   useEffect(() => {
     if (!deployed?.campaigns?.length || !deployed.rpcUrl) return;
@@ -22,7 +24,7 @@ export default function Home() {
       for (let i = 0; i < deployed.campaigns.length; i++) {
         try {
           const r = await contracts[i].totalRaised();
-          out[deployed.campaigns[i].slug] = ethers.formatUnits(r, 18);
+          out[deployed.campaigns[i].slug] = ethers.formatUnits(r, tokenDecimals);
         } catch {
           out[deployed.campaigns[i].slug] =
             deployed.campaigns[i].totalRaisedAfterSeed ?? "0";
@@ -34,7 +36,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [deployed]);
+  }, [deployed, tokenDecimals]);
 
   if (loadError) {
     return (
@@ -50,8 +52,8 @@ export default function Home() {
         <div className="hero">
           <h1>Barakah Equity</h1>
           <p className="hero-lead">
-            Sharia-minded equity crowdfunding: one offering at a time,
-            proportional ownership in YODA — no loans, no interest.
+            Crowdfunding rounds backed by smart contracts. Connect a wallet,
+            contribute in YODA, and manage campaign outcomes on-chain.
           </p>
         </div>
         <div className="alert alert-warn">
@@ -67,8 +69,10 @@ export default function Home() {
       <section className="hero">
         <h1>Invest with clarity</h1>
         <p className="hero-lead">
-          Browse offerings below. Each pool sells a fixed slice of equity; your
-          share tracks your contribution. Network fees are paid in{" "}
+          Browse live crowdfunding offerings on{" "}
+          <strong>{deployed.networkName}</strong>. Each pool sells a fixed slice
+          of equity, and your share tracks your contribution. Network fees are
+          paid in{" "}
           <strong>ETH</strong> (gas). <strong>YODA</strong> is the token you
           approve and invest with.
         </p>
@@ -108,12 +112,12 @@ export default function Home() {
                     {Number(raised).toLocaleString(undefined, {
                       maximumFractionDigits: 2,
                     })}{" "}
-                    YODA
+                      {tokenSymbol}
                   </dd>
                 </div>
                 <div>
                   <dt>Goal</dt>
-                  <dd>{c.fundingGoalHuman} YODA</dd>
+                  <dd>{c.fundingGoalHuman} {tokenSymbol}</dd>
                 </div>
                 <div>
                   <dt>Equity pool</dt>

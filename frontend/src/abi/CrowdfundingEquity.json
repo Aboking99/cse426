@@ -6,11 +6,21 @@
   "function equityPercentageOffered() view returns (uint256)",
   "function deadline() view returns (uint256)",
   "function finalized() view returns (bool)",
+  "function fundsClaimed() view returns (bool)",
+  "function roundState() view returns (uint8)",
+  "function fundingSucceeded() view returns (bool)",
+  "function fundingFailed() view returns (bool)",
+  "function refundableAmount(address investor) view returns (uint256)",
+  "function claimableFunds() view returns (uint256)",
   "function investors(address) view returns (uint256 amountInvested, uint256 equityShare)",
   "function getInvestorShare(address investor) view returns (uint256)",
   "function getTotalRaised() view returns (uint256)",
   "function invest(uint256 amount)",
   "function finalizeRound()",
+  "function refund()",
+  "function claimFunds()",
   "event Invested(address indexed investor, uint256 amount)",
-  "event Finalized()"
+  "event Finalized(uint256 totalRaised)",
+  "event Refunded(address indexed investor, uint256 amount)",
+  "event FundsClaimed(address indexed owner, uint256 amount)"
 ]

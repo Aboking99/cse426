@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "compile": "hardhat compile",
+    "test": "hardhat test",
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy-local.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy-sepolia.js --network sepolia",
     "time:advance": "hardhat run scripts/advance-time.js --network localhost",
     "frontend:install": "cd frontend && npm install",
     "frontend:dev": "cd frontend && npm run dev",
@@ -13,6 +15,7 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^17.3.1",
     "hardhat": "^2.22.10"
   },
   "dependencies": {

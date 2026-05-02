@@ -5,9 +5,27 @@ import crowdfundingAbi from "../abi/CrowdfundingEquity.json";
 import erc20Abi from "../abi/ERC20.json";
 import { useWeb3 } from "../context/Web3Context.jsx";
 
+const ROUND_STATE_LABELS = {
+  0: "Active",
+  1: "Successful — ready to finalize",
+  2: "Failed — refunds open",
+  3: "Finalized — owner can claim funds",
+  4: "Closed",
+};
+
+const ROUND_STATE_HELP = {
+  0: "Investments are open until the deadline.",
+  1: "The funding goal was met. The owner can finalize the round and lock in equity shares.",
+  2: "The deadline passed without meeting the goal. Investors can withdraw their YODA refunds.",
+  3: "Equity shares are finalized. The owner can now claim the raised YODA from the contract.",
+  4: "The owner has already claimed the raised funds.",
+};
+
 export default function CampaignDetail() {
   const { slug } = useParams();
   const { deployed, signer, account, ready, yodaIsMock } = useWeb3();
+  const tokenSymbol = deployed?.yodaSymbol || "YODA";
+  const tokenDecimals = deployed?.yodaDecimals ?? 18;
 
   const campaign = useMemo(
     () => deployed?.campaigns?.find((c) => c.slug === slug),
@@ -20,9 +38,13 @@ export default function CampaignDetail() {
   const [equityOffered, setEquityOffered] = useState("0");
   const [deadline, setDeadline] = useState(0);
   const [finalized, setFinalized] = useState(false);
+  const [fundsClaimed, setFundsClaimed] = useState(false);
   const [userInvested, setUserInvested] = useState("0");
   const [userOwnership, setUserOwnership] = useState("0");
   const [yodaBalance, setYodaBalance] = useState("0");
+  const [refundableAmount, setRefundableAmount] = useState("0");
+  const [claimableFunds, setClaimableFunds] = useState("0");
+  const [roundState, setRoundState] = useState(0);
   const [status, setStatus] = useState("");
   const [isOwner, setIsOwner] = useState(false);
 
@@ -36,12 +58,14 @@ export default function CampaignDetail() {
 
   const contract = useMemo(() => {
     if (!signer || !campaign) return null;
-    return new ethers.Contract(
-      campaign.crowdfunding,
-      crowdfundingAbi,
-      signer
-    );
+    return new ethers.Contract(campaign.crowdfunding, crowdfundingAbi, signer);
   }, [signer, campaign]);
+
+  const readContract = useMemo(() => {
+    if (!campaign || !deployed?.rpcUrl) return null;
+    const provider = new ethers.JsonRpcProvider(deployed.rpcUrl);
+    return new ethers.Contract(campaign.crowdfunding, crowdfundingAbi, provider);
+  }, [campaign, deployed]);
 
   const yoda = useMemo(() => {
     if (!signer || !deployed?.yodaToken) return null;
@@ -49,7 +73,7 @@ export default function CampaignDetail() {
   }, [signer, deployed]);
 
   const refreshData = useCallback(async () => {
-    if (!contract || !account || !yoda) return;
+    if (!readContract) return;
     try {
       const [
         goal,
@@ -57,36 +81,56 @@ export default function CampaignDetail() {
         eq,
         dl,
         fin,
-        ownerAddr,
-        investorData,
-        share,
-        bal,
+        claimed,
+        state,
       ] = await Promise.all([
-        contract.fundingGoal(),
-        contract.totalRaised(),
-        contract.equityPercentageOffered(),
-        contract.deadline(),
-        contract.finalized(),
-        contract.owner(),
-        contract.investors(account),
-        contract.getInvestorShare(account),
-        yoda.balanceOf(account),
+        readContract.fundingGoal(),
+        readContract.totalRaised(),
+        readContract.equityPercentageOffered(),
+        readContract.deadline(),
+        readContract.finalized(),
+        readContract.fundsClaimed(),
+        readContract.roundState(),
       ]);
 
-      setFundingGoal(ethers.formatUnits(goal, 18));
-      setTotalRaised(ethers.formatUnits(raised, 18));
+      setFundingGoal(ethers.formatUnits(goal, tokenDecimals));
+      setTotalRaised(ethers.formatUnits(raised, tokenDecimals));
       setEquityOffered(eq.toString());
       setDeadline(Number(dl));
       setFinalized(fin);
-      setIsOwner(ownerAddr.toLowerCase() === account.toLowerCase());
-      setUserInvested(ethers.formatUnits(investorData.amountInvested, 18));
-      setUserOwnership(Number(ethers.formatUnits(share, 18)).toFixed(6));
-      setYodaBalance(ethers.formatUnits(bal, 18));
+      setFundsClaimed(claimed);
+      setRoundState(Number(state));
+
+      const claimable = await readContract.claimableFunds();
+      setClaimableFunds(ethers.formatUnits(claimable, tokenDecimals));
+
+      if (contract && account && yoda) {
+        const [ownerAddr, investorData, share, bal, refundable] = await Promise.all([
+          contract.owner(),
+          contract.investors(account),
+          contract.getInvestorShare(account),
+          yoda.balanceOf(account),
+          contract.refundableAmount(account),
+        ]);
+
+        setIsOwner(ownerAddr.toLowerCase() === account.toLowerCase());
+        setUserInvested(ethers.formatUnits(investorData.amountInvested, tokenDecimals));
+        setUserOwnership(Number(ethers.formatUnits(share, 18)).toFixed(6));
+        setYodaBalance(ethers.formatUnits(bal, tokenDecimals));
+        setRefundableAmount(ethers.formatUnits(refundable, tokenDecimals));
+      } else {
+        setIsOwner(false);
+        setUserInvested("0");
+        setUserOwnership("0");
+        setYodaBalance("0");
+        setRefundableAmount("0");
+      }
+
       setStatus("");
     } catch (err) {
       setStatus(`Read failed: ${err.shortMessage || err.message}`);
     }
-  }, [contract, account, yoda]);
+  }, [readContract, contract, account, yoda, tokenDecimals]);
 
   useEffect(() => {
     refreshData();
@@ -101,7 +145,7 @@ export default function CampaignDetail() {
       ]);
       const data = iface.encodeFunctionData("mint", [
         account,
-        ethers.parseUnits("10000", 18),
+        ethers.parseUnits("10000", tokenDecimals),
       ]);
       const tx = await signer.sendTransaction({
         to: deployed.yodaToken,
@@ -116,10 +160,10 @@ export default function CampaignDetail() {
   }
 
   async function approveYoda() {
-    if (!yoda || !contract || !investAmount || !deployed || !campaign) return;
+    if (!yoda || !contract || !investAmount || !campaign) return;
     try {
       setStatus("Approving YODA…");
-      const amountWei = ethers.parseUnits(investAmount, 18);
+      const amountWei = ethers.parseUnits(investAmount, tokenDecimals);
       const tx = await yoda.approve(campaign.crowdfunding, amountWei);
       await tx.wait();
       setStatus("Approve confirmed.");
@@ -132,7 +176,7 @@ export default function CampaignDetail() {
     if (!contract || !investAmount) return;
     try {
       setStatus("Investing…");
-      const amountWei = ethers.parseUnits(investAmount, 18);
+      const amountWei = ethers.parseUnits(investAmount, tokenDecimals);
       const tx = await contract.invest(amountWei);
       await tx.wait();
       setStatus("Investment confirmed.");
@@ -155,6 +199,32 @@ export default function CampaignDetail() {
     }
   }
 
+  async function claimFunds() {
+    if (!contract) return;
+    try {
+      setStatus("Claiming raised funds…");
+      const tx = await contract.claimFunds();
+      await tx.wait();
+      setStatus("Raised funds claimed.");
+      await refreshData();
+    } catch (e) {
+      setStatus(`Claim failed: ${e.shortMessage || e.message}`);
+    }
+  }
+
+  async function requestRefund() {
+    if (!contract) return;
+    try {
+      setStatus("Requesting refund…");
+      const tx = await contract.refund();
+      await tx.wait();
+      setStatus("Refund completed.");
+      await refreshData();
+    } catch (e) {
+      setStatus(`Refund failed: ${e.shortMessage || e.message}`);
+    }
+  }
+
   if (!ready || !campaign) {
     return (
       <div className="container">
@@ -172,6 +242,12 @@ export default function CampaignDetail() {
   const deadlineText = deadline
     ? new Date(deadline * 1000).toLocaleString()
     : "—";
+  const roundLabel = ROUND_STATE_LABELS[roundState] || "Unknown";
+  const roundHelp = ROUND_STATE_HELP[roundState] || "";
+  const canInvest = roundState === 0;
+  const canFinalize = isOwner && roundState === 1;
+  const canClaim = isOwner && roundState === 3 && Number(claimableFunds) > 0;
+  const canRefund = Number(refundableAmount) > 0 && roundState === 2;
 
   return (
     <div className="container">
@@ -208,28 +284,20 @@ export default function CampaignDetail() {
         <h2>Live pool</h2>
         <p className="gas-note">
           Network fees (gas) are paid in <strong>ETH</strong>.{" "}
-          <strong>YODA</strong> is only for your investment amount (after
-          approve).
+          <strong>{tokenSymbol}</strong> is only for the investment amount after
+          approval.
         </p>
-        {(!campaign.seedInvestors || campaign.seedInvestors.length === 0) && (
-          <p className="muted-small" style={{ marginTop: "0.5rem" }}>
-            No demo seed table — live totals update when wallets invest on-chain.
-          </p>
-        )}
         <div className="progress-wrap tall">
-          <div
-            className="progress-bar"
-            style={{ width: `${progressPct}%` }}
-          />
+          <div className="progress-bar" style={{ width: `${progressPct}%` }} />
         </div>
         <dl className="campaign-stats flat">
           <div>
             <dt>Funding goal</dt>
-            <dd>{fundingGoal} YODA</dd>
+            <dd>{fundingGoal} {tokenSymbol}</dd>
           </div>
           <div>
             <dt>Total raised</dt>
-            <dd>{totalRaised} YODA</dd>
+            <dd>{totalRaised} {tokenSymbol}</dd>
           </div>
           <div>
             <dt>Equity offered (total)</dt>
@@ -240,10 +308,11 @@ export default function CampaignDetail() {
             <dd>{deadlineText}</dd>
           </div>
           <div>
-            <dt>Finalized</dt>
-            <dd>{finalized ? "Yes" : "No"}</dd>
+            <dt>Round status</dt>
+            <dd>{roundLabel}</dd>
           </div>
         </dl>
+        <p className="muted-small">{roundHelp}</p>
         {isOwner && (
           <p>
             <span className="pill">You are the campaign owner</span>
@@ -255,8 +324,8 @@ export default function CampaignDetail() {
         <section className="card">
           <h2>Early participants (demo seed)</h2>
           <p className="muted-small">
-            Pre-filled for the demo UI; real deployments may leave this empty
-            until investors transact.
+            Pre-filled for the local demo UI. Sepolia deployments start with an
+            empty cap table until wallets invest on-chain.
           </p>
           <div className="table-wrap">
             <table>
@@ -287,28 +356,29 @@ export default function CampaignDetail() {
         <h2>Your wallet</h2>
         {!account ? (
           <p className="muted-small">
-            Connect your wallet from the header to approve and invest.
+            Connect your wallet from the header to approve, invest, refund, or
+            claim funds.
           </p>
         ) : (
           <>
             <p className="mono">{account}</p>
             <p>
-              <strong>YODA balance:</strong> {yodaBalance}
+              <strong>{tokenSymbol} balance:</strong> {yodaBalance}
             </p>
             {yodaIsMock && (
               <details className="dev-mint">
                 <summary>Developer: mock YODA mint (uses gas)</summary>
                 <div>
                   <p className="muted-small">
-                    Minting calls the mock token; gas is still paid in ETH (not
-                    YODA).
+                    This control is only available on local mock-token
+                    deployments.
                   </p>
                   <button
                     type="button"
                     className="btn btn-ghost"
                     onClick={mintDemoYoda}
                   >
-                    Mint 10,000 YODA
+                    Mint 10,000 {tokenSymbol}
                   </button>
                 </div>
               </details>
@@ -319,7 +389,7 @@ export default function CampaignDetail() {
 
       <section className="card">
         <h2>Invest</h2>
-        <label htmlFor="amt">Amount (YODA)</label>
+        <label htmlFor="amt">Amount ({tokenSymbol})</label>
         <div className="row">
           <input
             id="amt"
@@ -328,6 +398,7 @@ export default function CampaignDetail() {
             step="0.0001"
             value={investAmount}
             onChange={(e) => setInvestAmount(e.target.value)}
+            disabled={!canInvest}
           />
         </div>
         <div className="row">
@@ -335,19 +406,24 @@ export default function CampaignDetail() {
             type="button"
             className="btn btn-secondary"
             onClick={approveYoda}
-            disabled={!account}
+            disabled={!account || !canInvest}
           >
-            1. Approve YODA
+            1. Approve {tokenSymbol}
           </button>
           <button
             type="button"
             className="btn btn-primary"
             onClick={invest}
-            disabled={!account}
+            disabled={!account || !canInvest}
           >
             2. Invest
           </button>
         </div>
+        {!canInvest && (
+          <p className="muted-small">
+            This round is no longer accepting new investments.
+          </p>
+        )}
         {status && (
           <p className="form-status" role="status">
             {status}
@@ -358,15 +434,31 @@ export default function CampaignDetail() {
       <section className="card">
         <h2>Your position</h2>
         <p>
-          <strong>Invested:</strong> {userInvested} YODA
+          <strong>Invested:</strong> {userInvested} {tokenSymbol}
         </p>
         <p>
           <strong>Ownership (after finalize):</strong> {userOwnership}%
         </p>
-        {isOwner && (
-          <button type="button" className="btn btn-primary" onClick={finalizeRound}>
-            Finalize round (owner — after deadline & goal met)
+        <p>
+          <strong>Refund available:</strong> {refundableAmount} {tokenSymbol}
+        </p>
+        {canRefund && (
+          <button type="button" className="btn btn-secondary" onClick={requestRefund}>
+            Claim refund
           </button>
+        )}
+        {canFinalize && (
+          <button type="button" className="btn btn-primary" onClick={finalizeRound}>
+            Finalize round
+          </button>
+        )}
+        {canClaim && (
+          <button type="button" className="btn btn-primary" onClick={claimFunds}>
+            Claim {claimableFunds} {tokenSymbol}
+          </button>
+        )}
+        {isOwner && finalized && !fundsClaimed && Number(claimableFunds) === 0 && (
+          <p className="muted-small">No claimable funds remain in the contract.</p>
         )}
       </section>
     </div>
