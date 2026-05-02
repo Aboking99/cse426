@@ -25,6 +25,7 @@ export default function Layout() {
           </Link>
           <nav className="nav" aria-label="Main">
             <Link to="/">Campaigns</Link>
+            <Link to="/profile">Profile</Link>
             <Link to="/about">About</Link>
             <Link to="/faq">FAQ</Link>
             <Link to="/contact">Contact</Link>
