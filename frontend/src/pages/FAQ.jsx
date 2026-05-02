@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function FAQ() {
   return (
     <div className="container narrow">
@@ -23,12 +25,13 @@ export default function FAQ() {
           investor&apos;s share of the offered equity percentage. Until then,
           your &quot;ownership %&quot; may read as zero.
         </p>
-        <h2>Which network does this site use?</h2>
+        <h2>How do I list a new campaign?</h2>
         <p>
-          Whatever <code>chainId</code> and <code>rpcUrl</code> you set in{" "}
-          <code>frontend/public/deployed.json</code>. For a full interactive
-          demo, run a local Hardhat node and <code>npm run deploy:local</code>{" "}
-          to write real contract addresses there.
+          All campaigns are run <strong>through us</strong> — there is no
+          self-serve flow to publish a live offering from the site alone. To
+          propose a campaign, reach out on our{" "}
+          <Link to="/contact">Contact</Link> page. Each listing requires{" "}
+          <strong>admin approval</strong> before it can go live for investors.
         </p>
         <h2>Can fees be removed so I only use YODA?</h2>
         <p>

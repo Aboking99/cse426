@@ -73,6 +73,22 @@ This writes `frontend/public/deployed.json` with Sepolia contract addresses and 
 | `cd frontend && npm run dev` | Website |
 | `cd frontend && npm run build` | Production build |
 
+## Deploy on Vercel (free tier)
+
+Connect this GitHub repo in the [Vercel dashboard](https://vercel.com/new) and use:
+
+| Setting | Value |
+|---------|--------|
+| **Root Directory** | `frontend` |
+| **Framework** | Vite (auto-detected) |
+| **Build Command** | `npm run build` |
+| **Output Directory** | `dist` |
+| **Install Command** | default (`npm install` in `frontend`) |
+
+Use **Node.js 18+** for the build. [frontend/vercel.json](frontend/vercel.json) adds SPA rewrites so routes like `/campaign/:slug` work on refresh.
+
+[frontend/public/deployed.json](frontend/public/deployed.json) is copied into the production bundle at build time — update it (or redeploy from Hardhat) before triggering a new Vercel build if contract addresses or RPC metadata change.
+
 ## `.env`
 
 Required for Sepolia deployment. See [.env.example](.env.example).
