@@ -75,17 +75,13 @@ This writes `frontend/public/deployed.json` with Sepolia contract addresses and 
 
 ## Deploy on Vercel (free tier)
 
-Connect this GitHub repo in the [Vercel dashboard](https://vercel.com/new) and use:
+Connect this GitHub repo in the [Vercel dashboard](https://vercel.com/new). Use **Node.js 18+**.
 
-| Setting | Value |
-|---------|--------|
-| **Root Directory** | `frontend` |
-| **Framework** | Vite (auto-detected) |
-| **Build Command** | `npm run build` |
-| **Output Directory** | `dist` |
-| **Install Command** | default (`npm install` in `frontend`) |
+**Option A — leave project root at the repo root (simplest):** do not set a subdirectory root. The repo includes [vercel.json](vercel.json) at the monorepo root so Vercel runs `npm install` / `npm run build` inside `frontend/` and publishes `frontend/dist`, with SPA rewrites. Framework preset can be **Other** (overridden by `vercel.json`).
 
-Use **Node.js 18+** for the build. [frontend/vercel.json](frontend/vercel.json) adds SPA rewrites so routes like `/campaign/:slug` work on refresh.
+**Option B — Root Directory `frontend`:** then use Vite preset, default install, `npm run build`, output `dist`. SPA rewrites come from [frontend/vercel.json](frontend/vercel.json).
+
+If the build log shows lots of `glob` / Hardhat deprecation noise, Vercel was installing from the **wrong directory** (repo root instead of `frontend`); use Option A as committed, or fix Option B’s Root Directory.
 
 [frontend/public/deployed.json](frontend/public/deployed.json) is copied into the production bundle at build time — update it (or redeploy from Hardhat) before triggering a new Vercel build if contract addresses or RPC metadata change.
 
